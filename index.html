@@ -1,11 +1,95 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta http-equiv="refresh" content="0; url=./%ED%86%A0%EB%A7%88%ED%86%A0%20%ED%83%80%EC%9D%B4%EB%A8%B8.html" />
-<title>Tomato Timer</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Flip Pomodoro</title>
+<link rel="preconnect" href="https://api.fontshare.com" />
+<link rel="preconnect" href="https://cdn.fontshare.com" crossorigin />
+<!-- Fontshare: Zodiak (thin serif) + Satoshi (clean gothic) -->
+<link href="https://api.fontshare.com/v2/css?f[]=zodiak@100,300,400,700,900&f[]=satoshi@400,500,700,900&display=swap" rel="stylesheet" />
+<style>
+  * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    font-family: 'Satoshi', -apple-system, system-ui, 'Segoe UI', sans-serif;
+    background: #EFE3D2;
+    display: flex; align-items: center; justify-content: center;
+    min-height: 100vh; overflow: hidden;
+    text-wrap: pretty;
+  }
+  .wordmark { font-family: 'Zodiak', Georgia, serif; font-weight: 300; letter-spacing: 0.2px; }
+  input, button, textarea { font-family: inherit; }
+  input[type="time"]::-webkit-calendar-picker-indicator { display: none; }
+  img { -webkit-user-drag: none; }
+
+  @keyframes growBreathe { 0%,100%{ transform: scale(1.0) } 50%{ transform: scale(1.035) } }
+  .grow-breathe { animation: growBreathe 7s ease-in-out infinite; transform-origin: center 50%; }
+  .grow-breathe-strong { animation: growBreathe 4s ease-in-out infinite; }
+  .grow-dim img { filter: grayscale(0.7) brightness(0.97) !important; }
+  .tt-grain { position: absolute; inset: 0; pointer-events: none; z-index: 16; opacity: 0.07; mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 160px 160px; }
+  .tt-feather { -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 27%, #000 73%, transparent 100%); mask-image: linear-gradient(to bottom, transparent 0%, #000 27%, #000 73%, transparent 100%); }
+  /* ── design tokens (radius · motion · neutral palette) ── */
+  :root {
+    --dur: 240ms; --ease: cubic-bezier(.22,.61,.36,1);
+    --r-pill: 999px; --r-card: 20px; --r-tile: 16px;
+    --cream: #FDF7EB; --ink: #4A3A2C; --ink-2: #5A4636;
+    --body: #8B7560; --muted: #A8927C; --faint: #B9A48E;
+  }
+
+  /* ── interaction states: focus (a11y) ── */
+  button, input, textarea { outline: none; }
+  button:focus-visible, input:focus-visible, textarea:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 3px;
+  }
+
+  .grow-num { width: 70px; height: 70px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center;
+    transition: background var(--dur) var(--ease), box-shadow var(--dur) var(--ease), transform .15s ease; }
+  @media (hover: hover) { .grow-num:hover { background: rgba(255,255,255,0.6); box-shadow: 0 2px 8px -4px rgba(90,70,50,0.3); } }
+  .grow-num:active { transform: scale(0.92); background: rgba(255,255,255,0.6); }
+
+  /* primary CTA: smooth active + hover, disabled state */
+  .grow-cta { transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease), filter var(--dur) var(--ease); }
+  .grow-cta:active { transform: scale(0.97); }
+  @media (hover: hover) { .grow-cta:hover { filter: brightness(1.03); box-shadow: 0 14px 30px -8px var(--accent-shadow); } }
+  .grow-cta:disabled { opacity: .5; filter: grayscale(.2); cursor: not-allowed; box-shadow: none; }
+
+  /* glass buttons (corner icons · pills · back): unified hover/active + motion */
+  .tt-glass { transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease), background var(--dur) var(--ease); }
+  @media (hover: hover) { .tt-glass:hover { background: rgba(255,255,255,0.85) !important; box-shadow: 0 6px 16px -6px rgba(90,70,50,0.35); } }
+  .tt-glass:active { transform: scale(0.92); }
+  @keyframes ttConfetti { 0%{ transform: translateY(0) rotate(0); opacity: 1 } 100%{ transform: translateY(820px) rotate(560deg); opacity: 0.9 } }
+  .tt-confetti { animation: ttConfetti linear infinite; }
+  /* soft flipbook: each frame fades in briefly over the previous one (no scale, only adjacent-frame blend) */
+  @keyframes ttFade { from { opacity: 0 } to { opacity: 1 } }
+  .tt-fade { animation: ttFade 130ms ease-out; }
+  @media (prefers-reduced-motion: reduce) { .grow-breathe,.grow-breathe-strong,.tt-confetti,.tt-fade{ animation: none !important; } .tt-glass,.grow-cta{ transition: none !important; } }
+  ::-webkit-scrollbar { width: 0; height: 0; }
+</style>
 </head>
-<body>
-<p>Loading… <a href="./%ED%86%A0%EB%A7%88%ED%86%A0%20%ED%83%80%EC%9D%B4%EB%A8%B8.html">토마토 타이머 열기</a></p>
+<body style="font-family: -apple-system">
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="frames/ios-frame.jsx"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel" src="grow.jsx"></script>
+<script type="text/babel" src="screens2.jsx"></script>
+<script type="text/babel" src="app2.jsx"></script>
+
+<template id="__bundler_thumbnail">
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <rect width="100" height="100" fill="#FDF7EB"/>
+  <ellipse cx="50" cy="60" rx="24" ry="22" fill="#E0573C"/>
+  <path d="M50 40 q-4 -12 0 -16 q4 4 0 16" fill="#7E9450"/>
+  <path d="M50 40 q-12 -8 -16 -7 q4 8 16 7" fill="#8AA05C"/>
+  <path d="M50 40 q12 -8 16 -7 q-4 8 -16 7" fill="#8AA05C"/>
+</svg>
+</template>
 </body>
 </html>
