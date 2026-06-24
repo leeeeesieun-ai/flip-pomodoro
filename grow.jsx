@@ -93,7 +93,7 @@ function PhoneFlipIcon() {
 }
 
 // focusing: phone is face down — the plant (at current progress) shows behind, from GrowScreen
-function FocusFace({ mascotName, remaining, progress, onLift }) {
+function FocusFace({ mascotName, remaining, progress, onLift, showLift }) {
   return (
     <>
       <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 220, background: 'linear-gradient(to bottom, rgba(253,247,235,0.95) 32%, rgba(253,247,235,0))', zIndex: 20, pointerEvents: 'none' }} />
@@ -102,27 +102,42 @@ function FocusFace({ mascotName, remaining, progress, onLift }) {
         <div style={{ fontSize: 52, fontWeight: 300, color: '#4A3A2C', letterSpacing: 2, fontVariantNumeric: 'tabular-nums', marginTop: 2 }}>{fmtTime(remaining)}</div>
         <div style={{ fontSize: 13.5, color: '#8B7560', fontWeight: 600, marginTop: 6 }}>Phone down · {mascotName} is growing 🌱</div>
       </div>
+      {showLift &&
       <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 21, paddingBottom: 42, paddingTop: 56, textAlign: 'center', background: 'linear-gradient(to top, rgba(253,247,235,0.92) 50%, rgba(253,247,235,0))' }}>
-        <button onClick={onLift} className="tt-glass" style={{ border: 'none', background: 'rgba(255,255,255,0.55)', cursor: 'pointer', fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, color: '#6B5746', padding: '11px 22px', borderRadius: 999, boxShadow: '0 2px 8px -4px rgba(90,70,50,0.3)' }}>🙃 들어올리기 (시뮬)</button>
-      </div>
+        <button onClick={onLift} className="tt-glass" style={{ border: 'none', background: 'rgba(255,255,255,0.55)', cursor: 'pointer', fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, color: '#6B5746', padding: '11px 22px', borderRadius: 999, boxShadow: '0 2px 8px -4px rgba(90,70,50,0.3)' }}>Pause</button>
+      </div>}
       <div style={{ position: 'absolute', left: 0, bottom: 0, height: 4, width: progress * 100 + '%', background: 'var(--accent)', zIndex: 22, transition: 'width .3s linear', opacity: 0.85 }} />
     </>);
 }
 
-// face up: prompt to put the phone down (start, or paused after a pick-up) — plant shows behind
-function FaceUpPrompt({ mascotName, started, remaining, armed, onPrimary, onStop }) {
-  const title = started ? 'Put me back down' : armed ? 'Now flip it over' : 'Place your phone face down';
-  const sub = started ? `${mascotName} paused · ${fmtTime(remaining)} left`
-    : armed ? 'Flip your phone face-down and Toma starts growing.' : 'A seed grows into a tomato.';
-  const btn = started ? 'Resume' : armed ? 'Start without flipping' : 'Start';
+// face up: prompt to put the phone down (start, or paused after a pick-up) — plant shows behind.
+// touch = real phone (gyro): flip to start/resume, with a subtle tap fallback. desktop = manual buttons.
+function FaceUpPrompt({ mascotName, started, remaining, isTouch, armed, onArm, onManual, onStop }) {
+  let title, sub, primary = null, fallback = null;
+  if (!isTouch) {
+    title = started ? 'Put me back down' : 'Place your phone face down';
+    sub = started ? `${mascotName} paused · ${fmtTime(remaining)} left` : 'A seed grows into a tomato.';
+    primary = { label: started ? 'Resume' : 'Start', onClick: onManual };
+  } else if (started) {
+    title = 'Put me back down';
+    sub = `${mascotName} paused · ${fmtTime(remaining)} left`;
+    fallback = 'Tap to resume';
+  } else if (armed) {
+    title = 'Now flip it over';
+    sub = 'Flip your phone face-down — Toma starts growing.';
+    fallback = 'Sensor off? Tap to start';
+  } else {
+    title = 'Flip to focus';
+    sub = 'Put your phone face-down and Toma grows.';
+    primary = { label: 'Start', onClick: onArm };
+  }
   return (
     <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 21, padding: '88px 32px 42px', textAlign: 'center', background: 'linear-gradient(to top, rgba(253,247,235,0.97) 56%, rgba(253,247,235,0))' }}>
       <PhoneFlipIcon />
       <div className="wordmark" style={{ fontSize: 25, color: '#5A4636', marginTop: 12 }}>{title}</div>
       <div style={{ fontSize: 15, color: '#8B7560', fontWeight: 600, marginTop: 8, lineHeight: 1.5 }}>{sub}</div>
-      {armed
-        ? <button onClick={onPrimary} className="tt-glass" style={{ marginTop: 22, border: 'none', background: 'rgba(255,255,255,0.6)', cursor: 'pointer', fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, color: '#6B5746', padding: '11px 22px', borderRadius: 999, boxShadow: '0 2px 8px -4px rgba(90,70,50,0.3)' }}>{btn}</button>
-        : <button onClick={onPrimary} className="grow-cta" style={{ ...ctaStyle, marginTop: 22, padding: '14px 46px' }}>{btn}</button>}
+      {primary && <button onClick={primary.onClick} className="grow-cta" style={{ ...ctaStyle, marginTop: 22, padding: '14px 46px' }}>{primary.label}</button>}
+      {fallback && <div style={{ marginTop: 20 }}><button onClick={onManual} style={{ border: 'none', background: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, color: '#B9A48E', fontWeight: 600, textDecoration: 'underline', textUnderlineOffset: 3 }}>{fallback}</button></div>}
       <div style={{ marginTop: 14 }}><button onClick={onStop} style={{ border: 'none', background: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 14, color: '#A8927C', fontWeight: 600 }}>{started ? 'Stop for today' : 'Cancel'}</button></div>
     </div>);
 }
@@ -172,6 +187,7 @@ function GrowScreen({ store, mascotName, secPerMin, replayStyle, onToggleReplay,
   const elapsedRef = useRefG(initialSession?.elapsed || 0); // committed focus-seconds
   const anchorRef = useRefG(null);                   // wall-clock ms when current face-down segment started
   const pickups = useRefG(0);                        // times phone was lifted mid-session
+  const isTouch = useRefG(typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(pointer: coarse)').matches).current;
   const total = duration * 60;
 
   // wall-clock elapsed: committed + time since phone went down → screen-off never loses time
@@ -232,17 +248,14 @@ function GrowScreen({ store, mascotName, secPerMin, replayStyle, onToggleReplay,
   // gyro flip-detection: face down (z ≈ -9.8) counts, face up (z ≈ +9.8) pauses
   useEffectG(() => {
     if (!sensorArmed || !running || replay) return;
-    let faceNow = false, gotData = false;
+    let faceNow = false;
     const onMotion = (e) => {
       const g = e.accelerationIncludingGravity; if (!g || g.z == null) return;
-      gotData = true;
-      if (g.z < -6 && !faceNow) { faceNow = true; setFace(true); }
-      else if (g.z > 2 && faceNow) { faceNow = false; setFace(false); }
+      if (g.z < -5.5 && !faceNow) { faceNow = true; setFace(true); }
+      else if (g.z > 3 && faceNow) { faceNow = false; setFace(false); }
     };
     window.addEventListener('devicemotion', onMotion);
-    // no sensor data (e.g. desktop) → fall back to manual start
-    const fb = setTimeout(() => { if (!gotData) { setSensorArmed(false); setFace(true); } }, 2500);
-    return () => { clearTimeout(fb); window.removeEventListener('devicemotion', onMotion); };
+    return () => window.removeEventListener('devicemotion', onMotion);
   }, [sensorArmed, running, replay]);
 
   // commit / open a wall-clock segment when face-down or run state changes
@@ -318,10 +331,10 @@ function GrowScreen({ store, mascotName, secPerMin, replayStyle, onToggleReplay,
         <>
           <PlantStack progress={progress} frames={frames} idle={false} />
           {faceDown ? (
-            <FocusFace mascotName={mascotName} remaining={remaining} progress={progress} onLift={() => setFace(false)} />
+            <FocusFace mascotName={mascotName} remaining={remaining} progress={progress} onLift={() => setFace(false)} showLift={!isTouch} />
           ) : (
-            <FaceUpPrompt mascotName={mascotName} started={elapsed > 0} remaining={remaining} armed={sensorArmed && elapsed === 0}
-          onPrimary={() => { if (elapsed > 0 || sensorArmed) setFace(true); else onStartTap(); }} onStop={stop} />
+            <FaceUpPrompt mascotName={mascotName} started={elapsed > 0} remaining={remaining} isTouch={isTouch} armed={sensorArmed && elapsed === 0}
+              onArm={onStartTap} onManual={() => setFace(true)} onStop={stop} />
           )}
         </>
       )}
