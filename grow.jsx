@@ -87,8 +87,8 @@ function PhoneFlipIcon() {
     <svg width="50" height="50" viewBox="0 0 48 48" fill="none" stroke={c} strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round">
       <rect x="17" y="17" width="14" height="21" rx="3" />
       <line x1="22" y1="34.5" x2="26" y2="34.5" />
-      <path d="M15 14.5C15 8 32 8 32 14.5" />
-      <path d="M32 19L29.4 14.3H34.6L32 19Z" fill={c} stroke="none" />
+      <path d="M15 9C15 2.5 32 2.5 32 9" />
+      <path d="M32 13.5L29.4 8.8H34.6L32 13.5Z" fill={c} stroke="none" />
     </svg>);
 }
 
