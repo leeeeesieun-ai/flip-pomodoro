@@ -251,8 +251,8 @@ function GrowScreen({ store, mascotName, secPerMin, replayStyle, onToggleReplay,
     let faceNow = false;
     const onMotion = (e) => {
       const g = e.accelerationIncludingGravity; if (!g || g.z == null) return;
-      if (g.z < -5.5 && !faceNow) { faceNow = true; setFace(true); }
-      else if (g.z > 3 && faceNow) { faceNow = false; setFace(false); }
+      if (g.z > 5.5 && !faceNow) { faceNow = true; setFace(true); }   // face down (this device reports +z)
+      else if (g.z < -3 && faceNow) { faceNow = false; setFace(false); } // face up
     };
     window.addEventListener('devicemotion', onMotion);
     return () => window.removeEventListener('devicemotion', onMotion);
