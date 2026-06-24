@@ -97,13 +97,13 @@ function FocusFace({ mascotName, remaining, progress, onLift, showLift }) {
   return (
     <>
       <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 220, background: 'linear-gradient(to bottom, rgba(253,247,235,0.95) 32%, rgba(253,247,235,0))', zIndex: 20, pointerEvents: 'none' }} />
-      <div style={{ position: 'absolute', top: 64, left: 0, right: 0, zIndex: 21, textAlign: 'center' }}>
+      <div style={{ position: 'absolute', top: 'calc(var(--safe-top) + 20px)', left: 0, right: 0, zIndex: 21, textAlign: 'center' }}>
         <div style={{ fontSize: 12.5, fontWeight: 800, color: '#B9A48E', letterSpacing: 2 }}>FOCUSING</div>
         <div style={{ fontSize: 52, fontWeight: 300, color: '#4A3A2C', letterSpacing: 2, fontVariantNumeric: 'tabular-nums', marginTop: 2 }}>{fmtTime(remaining)}</div>
         <div style={{ fontSize: 13.5, color: '#8B7560', fontWeight: 600, marginTop: 6 }}>Phone down · {mascotName} is growing 🌱</div>
       </div>
       {showLift &&
-      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 21, paddingBottom: 42, paddingTop: 56, textAlign: 'center', background: 'linear-gradient(to top, rgba(253,247,235,0.92) 50%, rgba(253,247,235,0))' }}>
+      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 21, paddingBottom: 'calc(42px + var(--safe-bottom))', paddingTop: 56, textAlign: 'center', background: 'linear-gradient(to top, rgba(253,247,235,0.92) 50%, rgba(253,247,235,0))' }}>
         <button onClick={onLift} className="tt-glass" style={{ border: 'none', background: 'rgba(255,255,255,0.55)', cursor: 'pointer', fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, color: '#6B5746', padding: '11px 22px', borderRadius: 999, boxShadow: '0 2px 8px -4px rgba(90,70,50,0.3)' }}>Pause</button>
       </div>}
       <div style={{ position: 'absolute', left: 0, bottom: 0, height: 4, width: progress * 100 + '%', background: 'var(--accent)', zIndex: 22, transition: 'width .3s linear', opacity: 0.85 }} />
@@ -132,7 +132,7 @@ function FaceUpPrompt({ mascotName, started, remaining, isTouch, armed, onArm, o
     primary = { label: 'Start', onClick: onArm };
   }
   return (
-    <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 21, padding: '88px 32px 42px', textAlign: 'center', background: 'linear-gradient(to top, rgba(253,247,235,0.97) 56%, rgba(253,247,235,0))' }}>
+    <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 21, padding: '88px 32px calc(42px + var(--safe-bottom))', textAlign: 'center', background: 'linear-gradient(to top, rgba(253,247,235,0.97) 56%, rgba(253,247,235,0))' }}>
       <PhoneFlipIcon />
       <div className="wordmark" style={{ fontSize: 25, color: '#5A4636', marginTop: 12 }}>{title}</div>
       <div style={{ fontSize: 15, color: '#8B7560', fontWeight: 600, marginTop: 8, lineHeight: 1.5 }}>{sub}</div>
@@ -169,7 +169,7 @@ function GrowthReplay({ target, style, mode, onDone }) {
         <img key={f} src={FRAMES[f]} alt="" draggable="false" className={soft ? 'tt-fade' : undefined} style={imgBase} />
       </div>
       <Grain />
-      <div style={{ position: 'absolute', top: 70, left: 0, right: 0, textAlign: 'center', zIndex: 21 }}>
+      <div style={{ position: 'absolute', top: 'calc(var(--safe-top) + 26px)', left: 0, right: 0, textAlign: 'center', zIndex: 21 }}>
         <div style={{ fontSize: 12.5, fontWeight: 800, color: '#B9A48E', letterSpacing: 1.5 }}>{mode === 'complete' ? 'ALL DONE' : mode === 'preview' ? 'PREVIEW' : 'HOW FAR TOMA GREW'}</div>
         <div className="wordmark" style={{ fontSize: 28, color: '#5A4636', marginTop: 4 }}>{pct}%</div>
       </div>
@@ -307,7 +307,7 @@ function GrowScreen({ store, mascotName, secPerMin, replayStyle, onToggleReplay,
       {!running ? (
         <>
           <PlantStack progress={0} frames={frames} idle={true} />
-          <div style={{ position: 'absolute', top: 60, left: 24, right: 24, zIndex: 21, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+          <div style={{ position: 'absolute', top: 'calc(var(--safe-top) + 16px)', left: 24, right: 24, zIndex: 21, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
             <div>
               <div style={{ fontWeight: 700, color: '#A8927C', fontFamily: "'Satoshi', sans-serif", fontSize: "13px" }}>{store.streak > 0 ? `${store.streak} day streak` : 'Take it slow today'}</div>
               <div className="wordmark" style={{ color: '#5A4636', marginTop: 2, fontSize: "24px" }}>Hi, {mascotName}</div>
@@ -318,7 +318,7 @@ function GrowScreen({ store, mascotName, secPerMin, replayStyle, onToggleReplay,
             </div>
           </div>
 
-          <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 21, paddingBottom: 46, paddingTop: 60, background: 'linear-gradient(to top, rgba(253,247,235,0.96) 55%, rgba(253,247,235,0))' }}>
+          <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 21, paddingBottom: 'calc(46px + var(--safe-bottom))', paddingTop: 60, background: 'linear-gradient(to top, rgba(253,247,235,0.96) 55%, rgba(253,247,235,0))' }}>
             <div style={{ textAlign: 'center', fontSize: 13.5, fontWeight: 200, color: '#A8927C', marginBottom: 14, letterSpacing: 0.3, fontFamily: "'Satoshi', -apple-system, system-ui, sans-serif" }}>How many minutes will you focus?</div>
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 16 }}>
               {[10, 25, 50].map((m) =>
@@ -368,11 +368,11 @@ function Complete2({ result, mascotName, firstRun, totalHarvest, onBreak, onAgai
     <div style={{ position: 'absolute', inset: 0, background: CREAM, overflow: 'hidden' }}>
       <img src={RIPE} alt="" className="grow-breathe tt-feather" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center center' }} />
       <Grain />
-      <div style={{ position: 'absolute', top: 70, left: 0, right: 0, textAlign: 'center', zIndex: 21 }}>
+      <div style={{ position: 'absolute', top: 'calc(var(--safe-top) + 26px)', left: 0, right: 0, textAlign: 'center', zIndex: 21 }}>
         <div style={{ fontSize: 13, fontWeight: 700, color: '#A8927C', letterSpacing: 1 }}>{firstRun ? 'FIRST HARVEST' : 'HARVEST'}</div>
         <div className="wordmark" style={{ fontSize: 32, color: '#5A4636', marginTop: 4 }}>All ripe!</div>
       </div>
-      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 21, background: 'linear-gradient(to top, rgba(253,247,235,0.97) 55%, rgba(253,247,235,0))', padding: '70px 32px 44px' }}>
+      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 21, background: 'linear-gradient(to top, rgba(253,247,235,0.97) 55%, rgba(253,247,235,0))', padding: '70px 32px calc(44px + var(--safe-bottom))' }}>
         <div style={{ textAlign: 'center', fontSize: 15, fontWeight: 600, color: '#8B7560', marginBottom: 18 }}>
           {result.distractCount === 0 ? `Perfectly ripe — ${result.duration} min done!` : 'Thanks for coming back. It ripened!'}
           <br /><span style={{ fontSize: 13, color: '#B9A48E' }}>#{totalHarvest} in your garden</span>
@@ -411,11 +411,11 @@ function Break2({ duration, mascotName, secPerMin, onDone }) {
     <div style={{ position: 'absolute', inset: 0, background: CREAM, overflow: 'hidden' }}>
       <img src={imgRef.current} alt="" draggable="false" className="tt-feather" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center center' }} />
       <Grain />
-      <div style={{ position: 'absolute', top: 70, left: 0, right: 0, textAlign: 'center', zIndex: 21 }}>
+      <div style={{ position: 'absolute', top: 'calc(var(--safe-top) + 26px)', left: 0, right: 0, textAlign: 'center', zIndex: 21 }}>
         <div style={{ fontSize: 13, fontWeight: 700, color: '#A8927C', letterSpacing: 1 }}>TAKE A BREAK</div>
         <div style={{ fontSize: 52, fontWeight: 300, color: '#4A3A2C', letterSpacing: 2, fontVariantNumeric: 'tabular-nums', marginTop: 4 }}>{fmtTime(remaining)}</div>
       </div>
-      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 21, paddingBottom: 44, paddingTop: 60, textAlign: 'center', background: 'linear-gradient(to top, rgba(253,247,235,0.96) 55%, rgba(253,247,235,0))' }}>
+      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 21, paddingBottom: 'calc(44px + var(--safe-bottom))', paddingTop: 60, textAlign: 'center', background: 'linear-gradient(to top, rgba(253,247,235,0.96) 55%, rgba(253,247,235,0))' }}>
         <div style={{ fontSize: 15, color: '#8B7560', fontWeight: 600, marginBottom: 18, lineHeight: 1.5 }}>Rest your eyes — look out the window.</div>
         <button onClick={onDone} className="tt-glass" style={{ border: 'none', background: 'rgba(255,255,255,0.6)', cursor: 'pointer', fontFamily: 'inherit', fontSize: 14.5, fontWeight: 700, color: '#6B5746', padding: '12px 26px', borderRadius: 999, boxShadow: '0 2px 8px -4px rgba(90,70,50,0.3)' }}>Skip break</button>
       </div>

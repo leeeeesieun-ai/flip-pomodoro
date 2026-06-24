@@ -130,7 +130,7 @@ function App2() {
 
   if (fullscreen) {
     return (
-      <div style={{ ...vars, position: 'fixed', inset: 0, overflow: 'hidden', background: '#FDF7EB' }}>
+      <div style={{ ...vars, '--safe-top': 'env(safe-area-inset-top)', '--safe-bottom': 'env(safe-area-inset-bottom)', position: 'fixed', inset: 0, overflow: 'hidden', background: '#FDF7EB' }}>
         {content}
         {modals}
       </div>
@@ -138,7 +138,7 @@ function App2() {
   }
 
   return (
-    <div style={{ ...vars, position: 'relative' }}>
+    <div style={{ ...vars, '--safe-top': '44px', position: 'relative' }}>
       <Scaler2>
         <IOSDevice>{content}</IOSDevice>
         {modals}

@@ -3,7 +3,7 @@ const { useState: useStateS2 } = React;
 
 function BackBar({ title, onBack }) {
   return (
-    <div style={{ position: 'relative', zIndex: 10, display: 'flex', alignItems: 'center', gap: 10, padding: '58px 20px 6px' }}>
+    <div style={{ position: 'relative', zIndex: 10, display: 'flex', alignItems: 'center', gap: 10, padding: 'calc(var(--safe-top) + 14px) 20px 6px' }}>
       <button onClick={onBack} className="tt-glass" style={{ border: 'none', cursor: 'pointer', width: 38, height: 38, borderRadius: 999, background: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px -4px rgba(90,70,50,0.25)' }}>
         <svg width="11" height="18" viewBox="0 0 11 18" fill="none"><path d="M9 2L2 9l7 7" stroke="#7A6552" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
       </button>
@@ -29,7 +29,7 @@ function Garden2({ store, mascotName, onBack }) {
   const frameFor = (f) => FRAMES[Math.round(Math.max(0, Math.min(1, f)) * (FRAMES.length - 1))];
 
   return (
-    <div style={{ position: 'absolute', inset: 0, background: CREAM, overflow: 'auto', paddingBottom: 40 }}>
+    <div style={{ position: 'absolute', inset: 0, background: CREAM, overflow: 'auto', paddingBottom: 'calc(40px + var(--safe-bottom))' }}>
       <Grain />
       <BackBar title={`${mascotName}’s Garden`} onBack={onBack} />
       <div style={{ padding: '0 20px' }}>
@@ -98,7 +98,7 @@ function Settings2({ store, setStore, mascotName, onBack, onRename, onReset }) {
   const head = { fontSize: 12, fontWeight: 800, color: '#B9A48E', margin: '6px 4px 8px', letterSpacing: 0.6 };
 
   return (
-    <div style={{ position: 'absolute', inset: 0, background: CREAM, overflow: 'auto', paddingBottom: 40 }}>
+    <div style={{ position: 'absolute', inset: 0, background: CREAM, overflow: 'auto', paddingBottom: 'calc(40px + var(--safe-bottom))' }}>
       <BackBar title="Settings" onBack={onBack} />
       <div style={{ padding: '4px 20px 0' }}>
         <div style={head}>TOMATO</div>
@@ -128,7 +128,7 @@ function Welcome2({ onStart }) {
     <div style={{ position: 'absolute', inset: 0, background: CREAM, overflow: 'hidden' }}>
       <img src={HERO_RED} alt="" className="grow-breathe tt-feather" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 42%' }} />
       <Grain />
-      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '90px 32px 48px', background: 'linear-gradient(to top, rgba(253,247,235,0.97) 50%, rgba(253,247,235,0))', zIndex: 5, textAlign: 'center' }}>
+      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '90px 32px calc(48px + var(--safe-bottom))', background: 'linear-gradient(to top, rgba(253,247,235,0.97) 50%, rgba(253,247,235,0))', zIndex: 5, textAlign: 'center' }}>
         <div className="wordmark" style={{ fontSize: 32, color: '#5A4636' }}>Flip Pomodoro</div>
         <div style={{ fontSize: 15.5, color: '#8B7560', fontWeight: 600, marginTop: 10, lineHeight: 1.6 }}>Flip your phone, grow a tomato.</div>
         <button onClick={() => onStart('Toma')} className="grow-cta" style={{ ...ctaStyle, width: '100%', marginTop: 26, boxSizing: 'border-box' }}>Get started</button>
