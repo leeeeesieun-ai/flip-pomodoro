@@ -1,6 +1,32 @@
 // grow.jsx — full-bleed growth screen (home+focus merged) · complete · break
 const { useState: useStateG, useEffect: useEffectG, useRef: useRefG } = React;
 
+// soft completion chime (Web Audio). Unlocked on a user gesture; respects the Sound setting.
+let _ttActx = null;
+function ttAudioUnlock() {
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+    if (!_ttActx) _ttActx = new AC();
+    if (_ttActx.state === 'suspended') _ttActx.resume();
+  } catch (e) {}
+}
+function ttChime() {
+  try {
+    ttAudioUnlock(); if (!_ttActx) return;
+    const now = _ttActx.currentTime;
+    [880, 1318.5].forEach((f, i) => { // two gentle notes (A5 → E6)
+      const o = _ttActx.createOscillator(), g = _ttActx.createGain();
+      o.type = 'sine'; o.frequency.value = f;
+      const t = now + i * 0.18;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.16, t + 0.03);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.7);
+      o.connect(g); g.connect(_ttActx.destination);
+      o.start(t); o.stop(t + 0.72);
+    });
+  } catch (e) {}
+}
+
 // 33-frame growth sequence (seed → ripe red), driven by progress.
 const FRAMES = Array.from({ length: 33 }, (_, i) => `assets/seq/f${String(i).padStart(2, '0')}.jpg`);
 const RIPE = FRAMES[32]; // full plant, cluster of red tomatoes
@@ -92,21 +118,21 @@ function PhoneFlipIcon() {
     </svg>);
 }
 
-// focusing: phone is face down — the plant (at current progress) shows behind, from GrowScreen
-function FocusFace({ mascotName, remaining, progress, onLift, showLift }) {
+// focusing: phone is face down. Plant stays visible but dimmed (lower brightness → less
+// OLED power) while the screen is kept awake for the completion chime.
+function FocusFace({ mascotName, remaining, onLift, showLift }) {
   return (
     <>
-      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 220, background: 'linear-gradient(to bottom, rgba(253,247,235,0.95) 32%, rgba(253,247,235,0))', zIndex: 20, pointerEvents: 'none' }} />
-      <div style={{ position: 'absolute', top: 'calc(var(--safe-top) + 20px)', left: 0, right: 0, zIndex: 21, textAlign: 'center' }}>
-        <div style={{ fontSize: 12.5, fontWeight: 800, color: '#B9A48E', letterSpacing: 2 }}>FOCUSING</div>
-        <div style={{ fontSize: 52, fontWeight: 300, color: '#4A3A2C', letterSpacing: 2, fontVariantNumeric: 'tabular-nums', marginTop: 2 }}>{fmtTime(remaining)}</div>
-        <div style={{ fontSize: 13.5, color: '#8B7560', fontWeight: 600, marginTop: 6 }}>Phone down · {mascotName} is growing 🌱</div>
+      <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 21, pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', top: 'calc(var(--safe-top) + 20px)', left: 0, right: 0, zIndex: 22, textAlign: 'center' }}>
+        <div style={{ fontSize: 12.5, fontWeight: 800, color: 'rgba(253,247,235,0.6)', letterSpacing: 2 }}>FOCUSING</div>
+        <div style={{ fontSize: 52, fontWeight: 300, color: 'rgba(253,247,235,0.95)', letterSpacing: 2, fontVariantNumeric: 'tabular-nums', marginTop: 2 }}>{fmtTime(remaining)}</div>
+        <div style={{ fontSize: 13.5, color: 'rgba(253,247,235,0.55)', fontWeight: 600, marginTop: 6 }}>{mascotName} is growing 🌱</div>
       </div>
       {showLift &&
-      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 21, paddingBottom: 'calc(42px + var(--safe-bottom))', paddingTop: 56, textAlign: 'center', background: 'linear-gradient(to top, rgba(253,247,235,0.92) 50%, rgba(253,247,235,0))' }}>
-        <button onClick={onLift} className="tt-glass" style={{ border: 'none', background: 'rgba(255,255,255,0.55)', cursor: 'pointer', fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, color: '#6B5746', padding: '11px 22px', borderRadius: 999, boxShadow: '0 2px 8px -4px rgba(90,70,50,0.3)' }}>Pause</button>
-      </div>}
-      <div style={{ position: 'absolute', left: 0, bottom: 0, height: 4, width: progress * 100 + '%', background: 'var(--accent)', zIndex: 22, transition: 'width .3s linear', opacity: 0.85 }} />
+        <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 22, paddingBottom: 'calc(42px + var(--safe-bottom))', paddingTop: 56, textAlign: 'center' }}>
+          <button onClick={onLift} style={{ border: 'none', background: 'rgba(255,255,255,0.16)', cursor: 'pointer', fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, color: 'rgba(253,247,235,0.9)', padding: '11px 22px', borderRadius: 999 }}>Pause</button>
+        </div>}
     </>);
 }
 
@@ -197,7 +223,7 @@ function GrowScreen({ store, mascotName, secPerMin, replayStyle, onToggleReplay,
     return Math.min(e, total);
   };
 
-  const start = (m) => { setDuration(m); elapsedRef.current = 0; anchorRef.current = null; pickups.current = 0; setFaceDown(false); setReplay(null); setSensorArmed(false); setRunning(true); };
+  const start = (m) => { ttAudioUnlock(); setDuration(m); elapsedRef.current = 0; anchorRef.current = null; pickups.current = 0; setFaceDown(false); setReplay(null); setSensorArmed(false); setRunning(true); };
 
   const setFace = (v) => {
     if (v === false && running && !replay && calcElapsed() > 0) pickups.current++;
@@ -218,6 +244,7 @@ function GrowScreen({ store, mascotName, secPerMin, replayStyle, onToggleReplay,
   };
   // Start tap: on a real phone arm the sensor (flip to begin); otherwise start manually
   const onStartTap = async () => {
+    ttAudioUnlock();
     const ok = await requestMotion();
     if (ok) setSensorArmed(true); else setFace(true);
   };
@@ -244,6 +271,19 @@ function GrowScreen({ store, mascotName, secPerMin, replayStyle, onToggleReplay,
 
   // preload all frames once
   useEffectG(() => { FRAMES.forEach((s) => { const im = new Image(); im.src = s; }); }, []);
+
+  // keep the screen awake during a session so the timer completes & the chime fires (released when idle)
+  useEffectG(() => {
+    if (!running || replay) return;
+    let lock = null, dead = false;
+    const acquire = async () => {
+      try { if (navigator.wakeLock && !lock && !document.hidden) lock = await navigator.wakeLock.request('screen'); } catch (e) {}
+    };
+    acquire();
+    const onVis = () => { if (!document.hidden && !dead) acquire(); };
+    document.addEventListener('visibilitychange', onVis);
+    return () => { dead = true; document.removeEventListener('visibilitychange', onVis); if (lock) { try { lock.release(); } catch (e) {} } };
+  }, [running, replay]);
 
   // gyro flip-detection: face down (z ≈ -9.8) counts, face up (z ≈ +9.8) pauses
   useEffectG(() => {
@@ -275,10 +315,10 @@ function GrowScreen({ store, mascotName, secPerMin, replayStyle, onToggleReplay,
       const e = calcElapsed();
       setTick((t) => t + 1);
       try { localStorage.setItem('tomatoTimer.session', JSON.stringify({ duration, elapsed: Math.round(e) })); } catch (err) {}
-      if (e >= total) { beginReplay('complete'); return; }
-      id = setTimeout(loop, 250);
+      if (e >= total) { if (store.sound !== false) ttChime(); beginReplay('complete'); return; }
+      id = setTimeout(loop, 1000); // 1s while face-down → less CPU/battery
     };
-    id = setTimeout(loop, 250);
+    id = setTimeout(loop, 1000);
     return () => clearTimeout(id);
   }, [running, faceDown, replay, total, secPerMin, duration]);
 
@@ -327,15 +367,16 @@ function GrowScreen({ store, mascotName, secPerMin, replayStyle, onToggleReplay,
             </div>
           </div>
         </>
+      ) : faceDown ? (
+        <>
+          <PlantStack progress={progress} frames={frames} idle={false} />
+          <FocusFace mascotName={mascotName} remaining={remaining} onLift={() => setFace(false)} showLift={!isTouch} />
+        </>
       ) : (
         <>
           <PlantStack progress={progress} frames={frames} idle={false} />
-          {faceDown ? (
-            <FocusFace mascotName={mascotName} remaining={remaining} progress={progress} onLift={() => setFace(false)} showLift={!isTouch} />
-          ) : (
-            <FaceUpPrompt mascotName={mascotName} started={elapsed > 0} remaining={remaining} isTouch={isTouch} armed={sensorArmed && elapsed === 0}
-              onArm={onStartTap} onManual={() => setFace(true)} onStop={stop} />
-          )}
+          <FaceUpPrompt mascotName={mascotName} started={elapsed > 0} remaining={remaining} isTouch={isTouch} armed={sensorArmed && elapsed === 0}
+            onArm={onStartTap} onManual={() => { ttAudioUnlock(); setFace(true); }} onStop={stop} />
         </>
       )}
     </div>);
