@@ -3,6 +3,8 @@ const { useState: useStateG, useEffect: useEffectG, useRef: useRefG } = React;
 
 // soft completion chime (Web Audio). Unlocked on a user gesture; respects the Sound setting.
 let _ttActx = null;
+let _ttKeepAlive = null; // silent loop node — keeps iOS audio session alive while face-down
+
 function ttAudioUnlock() {
   try {
     const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
@@ -10,22 +12,71 @@ function ttAudioUnlock() {
     if (_ttActx.state === 'suspended') _ttActx.resume();
   } catch (e) {}
 }
-function ttChime() {
+
+// Start a silent oscillator loop so iOS doesn't kill the audio session when phone flips face-down.
+function ttKeepAliveStart() {
   try {
     ttAudioUnlock(); if (!_ttActx) return;
-    const now = _ttActx.currentTime;
-    [880, 1318.5].forEach((f, i) => { // two gentle notes (A5 → E6)
-      const o = _ttActx.createOscillator(), g = _ttActx.createGain();
-      o.type = 'sine'; o.frequency.value = f;
-      const t = now + i * 0.18;
-      g.gain.setValueAtTime(0.0001, t);
-      g.gain.exponentialRampToValueAtTime(0.16, t + 0.03);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.7);
-      o.connect(g); g.connect(_ttActx.destination);
-      o.start(t); o.stop(t + 0.72);
-    });
+    if (_ttKeepAlive) return; // already running
+    const o = _ttActx.createOscillator();
+    const g = _ttActx.createGain();
+    g.gain.value = 0.0001; // inaudible
+    o.connect(g); g.connect(_ttActx.destination);
+    o.start();
+    _ttKeepAlive = { osc: o, gain: g };
   } catch (e) {}
 }
+
+function ttKeepAliveStop() {
+  try {
+    if (!_ttKeepAlive) return;
+    _ttKeepAlive.osc.stop();
+    _ttKeepAlive = null;
+  } catch (e) { _ttKeepAlive = null; }
+}
+// Play the two-note chime at audioContext time `at` (defaults to now). Returns the oscillator
+// nodes so a pre-scheduled chime can be cancelled if the session pauses before it fires.
+function ttChimeAt(at) {
+  ttAudioUnlock(); if (!_ttActx) return [];
+  const t0 = (at != null) ? at : _ttActx.currentTime;
+  const nodes = [];
+  [880, 1318.5].forEach((f, i) => { // two gentle notes (A5 → E6)
+    const o = _ttActx.createOscillator(), g = _ttActx.createGain();
+    o.type = 'sine'; o.frequency.value = f;
+    const t = t0 + i * 0.18;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.16, t + 0.03);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.7);
+    o.connect(g); g.connect(_ttActx.destination);
+    o.start(t); o.stop(t + 0.72);
+    nodes.push(o);
+  });
+  return nodes;
+}
+
+function ttChime() { try { ttChimeAt(); } catch (e) {} }
+
+// Pre-schedule the completion chime `delaySec` from now on the audio hardware clock.
+// The Web Audio clock keeps running while the screen is off (as long as the silent
+// keep-alive node holds the context active), so the chime fires even when JS is frozen.
+let _ttScheduled = null;
+function ttScheduleChime(delaySec) {
+  try {
+    ttCancelScheduledChime();
+    ttAudioUnlock(); if (!_ttActx) return;
+    _ttScheduled = ttChimeAt(_ttActx.currentTime + Math.max(0, delaySec));
+  } catch (e) {}
+}
+function ttCancelScheduledChime() {
+  try {
+    if (!_ttScheduled) return;
+    _ttScheduled.forEach((o) => { try { o.stop(); } catch (e) {} });
+    _ttScheduled = null;
+  } catch (e) { _ttScheduled = null; }
+}
+// Drop the reference without stopping — used at completion so the firing chime rings out
+// and the subsequent segment-close cancel becomes a no-op.
+function ttReleaseScheduledChime() { _ttScheduled = null; }
 
 // 33-frame growth sequence (seed → ripe red), driven by progress.
 const FRAMES = Array.from({ length: 33 }, (_, i) => `assets/seq/f${String(i).padStart(2, '0')}.jpg`);
@@ -223,7 +274,7 @@ function GrowScreen({ store, mascotName, secPerMin, replayStyle, onToggleReplay,
     return Math.min(e, total);
   };
 
-  const start = (m) => { ttAudioUnlock(); setDuration(m); elapsedRef.current = 0; anchorRef.current = null; pickups.current = 0; setFaceDown(false); setReplay(null); setSensorArmed(false); setRunning(true); };
+  const start = (m) => { ttAudioUnlock(); ttKeepAliveStart(); setDuration(m); elapsedRef.current = 0; anchorRef.current = null; pickups.current = 0; setFaceDown(false); setReplay(null); setSensorArmed(false); setRunning(true); };
 
   const setFace = (v) => {
     if (v === false && running && !replay && calcElapsed() > 0) pickups.current++;
@@ -252,6 +303,7 @@ function GrowScreen({ store, mascotName, secPerMin, replayStyle, onToggleReplay,
   const beginReplay = (mode) => {
     if (anchorRef.current != null) { elapsedRef.current = calcElapsed(); anchorRef.current = null; }
     const target = Math.min(elapsedRef.current / total, 1);
+    ttKeepAliveStop();
     setFaceDown(false); setReplay({ mode, target });
   };
 
@@ -301,9 +353,17 @@ function GrowScreen({ store, mascotName, secPerMin, replayStyle, onToggleReplay,
   // commit / open a wall-clock segment when face-down or run state changes
   useEffectG(() => {
     if (running && faceDown && !replay) {
-      if (anchorRef.current == null) anchorRef.current = Date.now();
+      if (anchorRef.current == null) {
+        anchorRef.current = Date.now();
+        // pre-schedule the chime on the audio clock so it fires even with the screen off
+        if (store.sound !== false) {
+          const realRemaining = (total - calcElapsed()) * (secPerMin / 60);
+          ttScheduleChime(realRemaining);
+        }
+      }
     } else if (anchorRef.current != null) {
       elapsedRef.current = calcElapsed(); anchorRef.current = null; setTick((t) => t + 1);
+      ttCancelScheduledChime(); // phone lifted / paused → drop the pending chime
     }
   }, [running, faceDown, replay, secPerMin, total]);
 
@@ -315,7 +375,7 @@ function GrowScreen({ store, mascotName, secPerMin, replayStyle, onToggleReplay,
       const e = calcElapsed();
       setTick((t) => t + 1);
       try { localStorage.setItem('tomatoTimer.session', JSON.stringify({ duration, elapsed: Math.round(e) })); } catch (err) {}
-      if (e >= total) { if (store.sound !== false) ttChime(); beginReplay('complete'); return; }
+      if (e >= total) { ttReleaseScheduledChime(); beginReplay('complete'); return; } // chime already scheduled on the audio clock
       id = setTimeout(loop, 1000); // 1s while face-down → less CPU/battery
     };
     id = setTimeout(loop, 1000);
