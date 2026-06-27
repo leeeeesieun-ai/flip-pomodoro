@@ -34,6 +34,33 @@ function ttKeepAliveStop() {
     _ttKeepAlive = null;
   } catch (e) { _ttKeepAlive = null; }
 }
+
+// Screen Wake Lock — keeps the phone from locking during a session (iOS Safari 16.4+).
+// A locked screen suspends the audio session entirely, so even the pre-scheduled chime
+// won't fire. Holding the screen awake (face-down, so the light is hidden) keeps JS and
+// audio running so the chime rings on time. Re-acquired automatically after the OS drops it.
+let _ttWakeLock = null;
+let _ttWantWakeLock = false;
+async function ttWakeLockAcquire() {
+  _ttWantWakeLock = true;
+  try {
+    if (!('wakeLock' in navigator)) return;
+    if (_ttWakeLock) return;
+    _ttWakeLock = await navigator.wakeLock.request('screen');
+    _ttWakeLock.addEventListener('release', () => { _ttWakeLock = null; });
+  } catch (e) { _ttWakeLock = null; }
+}
+function ttWakeLockRelease() {
+  _ttWantWakeLock = false;
+  try { if (_ttWakeLock) _ttWakeLock.release(); } catch (e) {}
+  _ttWakeLock = null;
+}
+// iOS drops the wake lock whenever the tab is backgrounded; re-grab it on return.
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', () => {
+    if (_ttWantWakeLock && !document.hidden) ttWakeLockAcquire();
+  });
+}
 // Play the two-note chime at audioContext time `at` (defaults to now). Returns the oscillator
 // nodes so a pre-scheduled chime can be cancelled if the session pauses before it fires.
 function ttChimeAt(at) {
@@ -274,7 +301,7 @@ function GrowScreen({ store, mascotName, secPerMin, replayStyle, onToggleReplay,
     return Math.min(e, total);
   };
 
-  const start = (m) => { ttAudioUnlock(); ttKeepAliveStart(); setDuration(m); elapsedRef.current = 0; anchorRef.current = null; pickups.current = 0; setFaceDown(false); setReplay(null); setSensorArmed(false); setRunning(true); };
+  const start = (m) => { ttAudioUnlock(); ttKeepAliveStart(); ttWakeLockAcquire(); setDuration(m); elapsedRef.current = 0; anchorRef.current = null; pickups.current = 0; setFaceDown(false); setReplay(null); setSensorArmed(false); setRunning(true); };
 
   const setFace = (v) => {
     if (v === false && running && !replay && calcElapsed() > 0) pickups.current++;
@@ -303,7 +330,7 @@ function GrowScreen({ store, mascotName, secPerMin, replayStyle, onToggleReplay,
   const beginReplay = (mode) => {
     if (anchorRef.current != null) { elapsedRef.current = calcElapsed(); anchorRef.current = null; }
     const target = Math.min(elapsedRef.current / total, 1);
-    ttKeepAliveStop();
+    ttKeepAliveStop(); ttWakeLockRelease();
     setFaceDown(false); setReplay({ mode, target });
   };
 
