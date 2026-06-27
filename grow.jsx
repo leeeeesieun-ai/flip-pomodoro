@@ -23,14 +23,14 @@ function ttKeepAliveStart() {
     g.gain.value = 0.0001; // inaudible
     o.connect(g); g.connect(_ttActx.destination);
     o.start();
-    _ttKeepAlive = { osc: o, gain: g };
+    _ttKeepAlive = o;
   } catch (e) {}
 }
 
 function ttKeepAliveStop() {
   try {
     if (!_ttKeepAlive) return;
-    _ttKeepAlive.osc.stop();
+    _ttKeepAlive.stop();
     _ttKeepAlive = null;
   } catch (e) { _ttKeepAlive = null; }
 }
@@ -80,8 +80,6 @@ function ttChimeAt(at) {
   });
   return nodes;
 }
-
-function ttChime() { try { ttChimeAt(); } catch (e) {} }
 
 // Pre-schedule the completion chime `delaySec` from now on the audio hardware clock.
 // The Web Audio clock keeps running while the screen is off (as long as the silent
